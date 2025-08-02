@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tryskove lietadla</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 100px);
+            grid-template-rows: repeat(8, 100px);
+            gap: 0px;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .brick {
+            width: 90px;
+            height: 90px;
+            background-image: url('img/tehla.png');
+            background-size: cover;
+        }
+        .gate {
+            width: 90px;
+            height: 90px;
+            background-image: url('img/brana.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+        .plane {
+            width: 90px;
+            height: 90px;
+            background-image: url('img/lietadlo-vlavo.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+    </style>
+</head>
+<body>
+<div id="grid" class="grid"></div>
+<script>
+        document.body.style.overflow = 'hidden';
+
+        const gridData = [
+            [1, 1, 1, 1, 1, 2, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 0, 3],
+        ];
+
+        const gridElement = document.getElementById('grid');
+        let planeCell = null;
+        let planeElement = null;
+
+        gridData.forEach(row => {
+            row.forEach(cell => {
+                const cellElement = document.createElement('div');
+                cellElement.classList.add('cell');
+                if (cell === 1) {
+                    const brickElement = document.createElement('div');
+                    brickElement.classList.add('brick');
+                    cellElement.appendChild(brickElement);
+                } else if (cell === 2) {
+                    const gateElement = document.createElement('div');
+                    gateElement.classList.add('gate');
+                    cellElement.appendChild(gateElement);
+                } else if (cell === 3) {
+                    planeElement = document.createElement('div');
+                    planeElement.classList.add('plane');
+                    cellElement.appendChild(planeElement);
+                    planeCell = cellElement;
+                }
+                gridElement.appendChild(cellElement);
+            });
+        });
+
+        let positionX = 0;
+        let positionY = 0;
+        let moveDirection = "up";
+        let intervalId = null;
+        let planeRect = planeCell.getBoundingClientRect();
+        let offsetX = planeRect.left;
+        let offsetY = planeRect.top;
+
+
+        function moveImage() {
+            if (isCrash()) {
+                planeElement.style.backgroundImage = 'url("img/rozbite-lietadlo.jpg")';
+                clearInterval(intervalId);
+                intervalId = null;
+                const sound = new Audio('sounds/rozbite-lietadlo.wav');
+                sound.play();
+                return;
+            }
+            if (isGate()) {
+                clearInterval(intervalId);
+                intervalId = null;
+                const sound = new Audio('sounds/brana.wav');
+                sound.play();
+                return;
+            }
+            if (moveDirection === "right") {
+                positionX += 10;
+                planeCell.style.left = positionX + "px";
+            } else if (moveDirection === "down") {
+                positionY += 10;
+                planeCell.style.top = positionY + "px";
+            } else if (moveDirection === "up") {
+                positionY -= 10;
+                planeCell.style.top = positionY + "px";
+            } else if (moveDirection === "left") {
+                positionX -= 10;
+                planeCell.style.left = positionX + "px";
+            }
+        }
+
+        function changeDirection(event) {
+            if (isCrash() | isGate()) {
+               location.reload();
+               return;
+            }
+            if (event.key === "ArrowDown") {
+                moveDirection = "down";
+                planeElement.style.backgroundImage = 'url("img/lietadlo-dole.png")';
+            }
+            if (event.key === "ArrowUp") {
+                moveDirection = "up";
+                planeElement.style.backgroundImage = 'url("img/lietadlo-hore.png")';
+            }
+            if (event.key === "ArrowRight") {
+                moveDirection = "right";
+                planeElement.style.backgroundImage = 'url("img/lietadlo-vpravo.png")';
+            }
+            if (event.key === "ArrowLeft") {
+                moveDirection = "left";
+                planeElement.style.backgroundImage = 'url("img/lietadlo-vlavo.png")';
+            }
+
+            if (!intervalId) {
+                intervalId = setInterval(moveImage, 100);
+            }
+        }
+
+        function isCrash() {
+            planeY = positionY + offsetY + 50;
+            planeX = positionX + offsetX + 50;
+
+            if (moveDirection == "up") {
+                planeY = Math.floor((planeY - 50) / 100);
+                planeX = Math.floor(planeX / 100);
+            } else if (moveDirection == "down") {
+                planeY = Math.floor((planeY + 50) / 100);
+                planeX = Math.floor(planeX / 100);
+            } else if (moveDirection == "left") {
+                planeY = Math.floor(planeY / 100);
+                planeX = Math.floor((planeX - 50) / 100);
+            } else if (moveDirection == "right") {
+                planeY = Math.floor(planeY / 100);
+                planeX = Math.floor((planeX + 50) / 100);
+            }
+
+            if (gridData[planeY][planeX] === 1) {
+                return true;
+            }
+            return false;
+        }
+
+        function isGate() {
+            planeY = positionY + offsetY + 50;
+            planeX = positionX + offsetX + 50;
+
+            if (moveDirection == "up") {
+                planeY = Math.floor((planeY) / 100);
+                planeX = Math.floor(planeX / 100);
+                if (gridData[planeY][planeX] === 2) {
+                    return true;
+                }
+            }
+
+
+            return false;
+        }
+
+        document.addEventListener("keydown", changeDirection);
+
+    </script>
+
+</body>
+</html>
